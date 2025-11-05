@@ -1,0 +1,33 @@
+@startuml
+title Diagrama de flujo de procesos de eCommerce
+
+start
+
+:Cliente entra a la app;
+:Registro/Login (rol: Cliente);
+:Explora catálogo dinámico con filtros;
+:Selecciona productos;
+:Agrega al carrito;
+:Valida existencias en tiempo real;
+
+if (Stock disponible?) then (Sí)
+  :Confirma pedido;
+  :Realiza pago en línea;
+  :Recibe comprobante digital;
+  :Empleado recibe notificación;
+  :Prepara pedido;
+  :Inventario se actualiza automáticamente;
+  :Cliente recibe seguimiento de estado;
+  :Recoge o recibe entrega;
+else (No)
+  :Mensaje de falta de stock;
+  stop
+endif
+
+:Administrador accede al panel;
+:Gestiona productos y precios;
+:Consulta reportes de ventas, inventario y caja;
+:Aplica promociones y descuentos;
+
+stop
+@enduml
