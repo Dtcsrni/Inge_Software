@@ -1,0 +1,95 @@
+@startuml
+title Proceso de compra — Papelería (diagrama de secuencia)
+autonumber
+
+actor Cliente
+participant "UI/Web" as UI
+participant "Catálogo" as CATALOG
+participant "Carrito" as CART
+participant "Inventario" as INV
+participant "Precios/Promos" as PRICE
+participant "Pedidos" as ORDER
+participant "Pago (Gateway)" as PAY
+participant "Facturación" as BILL
+participant "Notificaciones" as NOTIF
+participant "Almacén/Empleado" as WH
+participant "Envíos" as SHIP
+
+== Navegación ==
+Cliente -> UI : abrirTienda()
+UI -> CATALOG : listarCategorias()
+CATALOG --> UI : categorias()
+
+loop agregar items
+  Cliente -> UI : buscarProducto(filtro)
+  UI -> CATALOG : buscar(filtro)
+  CATALOG --> UI : resultados()
+  Cliente -> UI : seleccionar(sku,cant)
+  UI -> INV : verificarStock(sku,cant)
+  INV --> UI : stockOK/No
+  alt stockOK
+    UI -> PRICE : cotizar(sku,cant)
+    PRICE --> UI : precioConDescuento()
+    UI -> CART : agregar(sku,cant,precio)
+    CART --> UI : itemAgregado()
+  else sin stock
+    UI --> Cliente : mostrarAlternativas()
+  end
+end
+
+== Confirmación de pedido ==
+Cliente -> UI : verCarrito()
+UI -> CART : obtenerResumen()
+CART --> UI : items, subtotal
+UI -> PRICE : recalcularTotales(items)
+PRICE --> UI : total
+Cliente -> UI : confirmarCompra()
+
+== Creación de pedido ==
+UI -> ORDER : crearPedido(items,cliente)
+ORDER -> INV : reservarStock(items)
+INV --> ORDER : reservado
+ORDER --> UI : pedidoCreado(id)
+
+== Pago ==
+UI -> PAY : autorizar(id,total,metodo)
+alt aprobado
+  PAY --> UI : ok(ref)
+  UI -> ORDER : marcarPagado(id,ref)
+  ORDER -> BILL : generarFactura(id)
+  BILL --> ORDER : facturaPDF
+  ORDER -> NOTIF : enviarConfirmacion(cliente,PDF)
+  NOTIF --> ORDER : entregada
+else rechazado
+  PAY --> UI : error(motivo)
+  UI --> Cliente : reintentar/cambiarMétodo
+  return
+end
+
+== Preparación y entrega ==
+ORDER -> WH : prepararPedido(id)
+WH --> ORDER : listoParaEntrega
+alt retiro en tienda
+  ORDER -> NOTIF : avisarListoRetiro(cliente)
+  NOTIF --> ORDER : enviado
+else envío a domicilio
+  ORDER -> SHIP : solicitarEnvio(id,direccion)
+  SHIP --> ORDER : guía y estado
+  ORDER -> NOTIF : avisarEnvio(cliente,guía)
+end
+
+== Cierre ==
+ORDER -> INV : confirmarDescuenta(items)
+INV --> ORDER : actualizado
+ORDER --> UI : estadoFinal(id)
+UI --> Cliente : mostrarEstado()
+
+note over UI,SHIP
+Módulos de la tienda:
+UI/Web, Catálogo, Carrito,
+Inventario, Precios/Promos,
+Pedidos, Pago (Gateway),
+Facturación, Notificaciones,
+Almacén/Empleado, Envíos.
+end note
+@enduml
